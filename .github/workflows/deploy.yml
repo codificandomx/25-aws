@@ -31,16 +31,27 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build y push imagen a ECR
+        id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Actualizar Task Definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition-arn: arn:aws:ecs:us-east-1:819777643321:task-definition/api-tareas-task
+          container-name: api-tareas
+          image: ${{ steps.build-image.outputs.image }}
 
       - name: Actualizar ECS Service
-        run: |
-          aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE }} \
-            --force-new-deployment
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: api-tareas-service
+          cluster: api-tareas-cluster
+          wait-for-service-stability: true
