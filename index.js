@@ -13,7 +13,7 @@ let tareas = [
 
 app.get('/', (req, res) => {
   res.json({
-    mensaje: 'API corriendo en Docker',
+    mensaje: 'API v2 con CI/CD automatizado',
     runtime: process.version,
     uptime: `${Math.floor(process.uptime())} segundos`,
     timestamp: new Date().toISOString()
